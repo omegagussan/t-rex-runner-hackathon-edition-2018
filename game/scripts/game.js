@@ -12,6 +12,7 @@
      * @export
      */
     function Runner(outerContainerId, opt_config) {
+
         // Singleton
         if (Runner.instance_) {
             return Runner.instance_;
@@ -386,6 +387,7 @@
 
             this.startListening();
             this.update();
+            runBot(); //this is how we run the bot the first time
 
             window.addEventListener(Runner.events.RESIZE,
                 this.debounceResize.bind(this));
@@ -600,7 +602,6 @@
                 this.tRex.update(deltaTime);
                 this.scheduleNextUpdate();
             }
-
             runBot(); //this is how we run the botInterface every frame.
         },
 

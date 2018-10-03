@@ -16,22 +16,6 @@ function copyCanvas(oldCanvas, downsample_factor) {
     newContext.drawImage(oldCanvas, 0, 0);
     return newCanvas;
 }
-
-//instance variables
-let socket = io.connect('http://localhost:3000');
-let actions = [];
-let frame_id = 0;
-
-//config
-const downsamplingNumber = 4;
-
-//make action que
-socket.on('action', function (action) {
-    console.log("addeds action: " + action.action + " on frame: " + action.frame_id);
-    actions.push(action)
-});
-
-
 //api outwards
 function runBot(){
     if (Runner.instance_.playing) {
@@ -52,9 +36,12 @@ function runBot(){
 
             let this_action = actions[0].action;
             if (this_action === 'jump') {
-                tRex.startJump(Runner.instance_.currentSpeed);
+                Runner.instance_.tRex.startJump(Runner.instance_.currentSpeed);
+
+                //tRex.startJump(Runner.instance_.currentSpeed);
             } else if (this_action === 'duck') {
-                tRex.setDuck(true);
+                Runner.instance_.tRex.setDuck(false);
+                tRex.setDuck(false);
             } else {
                 console.log('ineligable command: ' + this_action + ' on frame: ' +  frame_id);
             }
@@ -67,3 +54,39 @@ function runBot(){
         frame_id++;
     }
 }
+
+//instance variables
+let socket = io.connect('http://localhost:3000');
+let actions = [];
+let frame_id = 0;
+
+//config
+const downsamplingNumber = 4
+
+let e_up = {keyCode:38};
+let e_down = {keyCode: 40};
+let e_restart = {keyCode: 13};
+
+
+//make action que
+socket.on('action', function (action) {
+    console.log("addeds action: " + action.action + " on frame: " + action.frame_id);
+    actions.push(action)
+});
+
+//start/restart game
+socket.on('start', function (action) {
+    if (Runner.instance_.crashed){
+        Runner.instance_.restart();
+        console.log(Runner.instance_.playing);
+        Runner.instance_.tRex.startJump(Runner.instance_.currentSpeed);
+        Runner.instance_.update();
+    }else {
+        Runner.instance_.play();
+        Runner.instance_.tRex.startJump(Runner.instance_.currentSpeed);
+        Runner.instance_.update();
+    }
+});
+
+
+

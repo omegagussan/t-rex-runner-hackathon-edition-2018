@@ -20,6 +20,7 @@ function handler (req, res) {
 }
 
 io.on('connection', function (socket) {
+    socket.emit('start', 'whatever');
     socket.emit('action', {frame_id:670, action:'jump'});
     socket.emit('action', {frame_id:830, action:'jump'});
 
