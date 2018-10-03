@@ -960,6 +960,7 @@
             opt_classname : Runner.classes.CANVAS;
         canvas.width = width;
         canvas.height = height;
+        canvas.id = 'canvasId';
         container.appendChild(canvas);
 
         return canvas;
