@@ -1,3 +1,22 @@
+//helper functions
+function copyCanvas(oldCanvas, downsample_factor) {
+    inverse_downsample_factor = 1/downsample_factor;
+
+    //create a new canvas
+    var newCanvas = document.createElement('canvas');
+    var newContext = newCanvas.getContext('2d');
+
+    //set dimensions
+    newCanvas.width = oldCanvas.width/downsample_factor;
+    newCanvas.height = oldCanvas.height/downsample_factor;
+
+    //apply the old canvas to the new one
+
+    newContext.scale(inverse_downsample_factor,inverse_downsample_factor);
+    newContext.drawImage(oldCanvas, 0, 0);
+    return newCanvas;
+}
+
 //instance variables
 let socket = io.connect('http://localhost:3000');
 let actions = [];
@@ -28,7 +47,7 @@ window.tRexBot = setInterval(function() {
             }
         }
         //emit
-        let canvas = document.getElementById('canvasId').toDataURL();
+        let canvas = copyCanvas(document.getElementById('canvasId'), 4).toDataURL();
         socket.emit('frame', {timestamp: current_timestamp, canvas});
         console.log(current_timestamp + " emitted canvas")
     }
