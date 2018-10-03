@@ -20,13 +20,17 @@ function handler (req, res) {
 }
 
 io.on('connection', function (socket) {
-    socket.emit('action', {frame_id:680, action:'jump'});
-    socket.emit('action', {frame_id:880, action:'jump'});
-    socket.emit('action', {frame_id:940, action:'jump'});
+    socket.emit('action', {frame_id:670, action:'jump'});
+    socket.emit('action', {frame_id:830, action:'jump'});
 
 
     socket.on('frame', function ({frame_id, canvas}) {
         console.log('frame: ' + frame_id);
+        if (frame_id == 500){
+            socket.emit('action', {frame_id:980, action:'jump'});
+        } else if (frame_id === 400){
+            socket.emit('action', {frame_id:700, action:'duck'});
+        }
         console.log(canvas);
     })
 });

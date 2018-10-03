@@ -35,15 +35,10 @@ socket.on('action', function (action) {
 //api outwards
 function runBot(){
     if (Runner.instance_.playing) {
-        //execute actions
-        console.log('frame: ' + frame_id);
-
         //filter old events
         actions = actions.filter(function(action){
             return action.frame_id >= frame_id;
         });
-        console.log(actions);
-
 
         //execute actions
         if(actions.length > 0 && frame_id === actions[0].frame_id){
