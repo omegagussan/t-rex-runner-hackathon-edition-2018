@@ -19,14 +19,15 @@ function handler (req, res) {
         });
 }
 
-let i = 0
 io.on('connection', function (socket) {
-    socket.on('frame', function ({timestamp, canvas}) {
-        console.log('timestamp: ' + timestamp);
+    socket.emit('action', {frame_id:680, action:'jump'});
+    socket.emit('action', {frame_id:880, action:'jump'});
+    socket.emit('action', {frame_id:940, action:'jump'});
+
+
+    socket.on('frame', function ({frame_id, canvas}) {
+        console.log('frame: ' + frame_id);
         console.log(canvas);
-        if (i++ % 100 === 0){
-            socket.emit('action', {timestamp, action:'jump'});
-        }
     })
 });
 

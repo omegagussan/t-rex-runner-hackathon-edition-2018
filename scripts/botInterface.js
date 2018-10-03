@@ -1,10 +1,10 @@
 //helper functions
 function copyCanvas(oldCanvas, downsample_factor) {
-    inverse_downsample_factor = 1/downsample_factor;
+    let inverse_downsample_factor = 1/downsample_factor;
 
     //create a new canvas
-    var newCanvas = document.createElement('canvas');
-    var newContext = newCanvas.getContext('2d');
+    let newCanvas = document.createElement('canvas');
+    let newContext = newCanvas.getContext('2d');
 
     //set dimensions
     newCanvas.width = oldCanvas.width/downsample_factor;
@@ -20,35 +20,55 @@ function copyCanvas(oldCanvas, downsample_factor) {
 //instance variables
 let socket = io.connect('http://localhost:3000');
 let actions = [];
-//conf
-let INTERVAL = 16; // since 1000ms=1s and 60fps=16.67ms to render a frame no point in sampling faster
+let frame_id = 0;
+
+//config
+const downsamplingNumber = 4;
 
 //make action que
 socket.on('action', function (action) {
+    console.log("addeds action: " + action.action + " on frame: " + action.frame_id);
     actions.push(action)
-
 });
 
-//loop to get frame every frame & do actions
-window.tRexBot = setInterval(function() {
-    if (Runner.instance_.playing){
-        let current_timestamp = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
+
+//api outwards
+function runBot(){
+    if (Runner.instance_.playing) {
+        //execute actions
+        console.log('frame: ' + frame_id);
+
+        //filter old events
+        actions = actions.filter(function(action){
+            return action.frame_id >= frame_id;
+        });
+        console.log(actions);
+
 
         //execute actions
-        if (actions.length > 0){
-            for (let i= actions.length -1; i >= 0; i--){
-                let this_timestamp = actions[i].timestamp;
-                if (Math.abs(this_timestamp - current_timestamp) >= INTERVAL){
-                    let tRex = Runner.instance_.tRex;
-                    if (actions[i].action === 'jump' && !tRex.jumping){
-                        tRex.startJump(Runner.instance_.currentSpeed);
-                    }
-                }
+        if(actions.length > 0 && frame_id === actions[0].frame_id){
+            let tRex = Runner.instance_.tRex;
+
+            //eligable for action
+            if (tRex.jumping || tRex.ducking){
+                console.log('not able to preform any action on frame: ' +  frame_id + ' because dino is jumping: ' + tRex.jumping + ' or ducking: ' +  tRex.ducking);
+                return;
+            }
+
+            let this_action = actions[0].action;
+            if (this_action === 'jump') {
+                tRex.startJump(Runner.instance_.currentSpeed);
+            } else if (this_action === 'duck') {
+                tRex.setDuck(true);
+            } else {
+                console.log('ineligable command: ' + this_action + ' on frame: ' +  frame_id);
             }
         }
+
         //emit
-        let canvas = copyCanvas(document.getElementById('canvasId'), 4).toDataURL();
-        socket.emit('frame', {timestamp: current_timestamp, canvas});
-        console.log(current_timestamp + " emitted canvas")
+        let canvas = copyCanvas(document.getElementById('canvasId'), downsamplingNumber).toDataURL();
+        socket.emit('frame', {frame_id: frame_id, canvas});
+
+        frame_id++;
     }
-}, INTERVAL);
+}

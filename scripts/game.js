@@ -600,6 +600,8 @@
                 this.tRex.update(deltaTime);
                 this.scheduleNextUpdate();
             }
+
+            runBot(); //this is how we run the botInterface every frame.
         },
 
         /**
