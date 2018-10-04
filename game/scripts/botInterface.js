@@ -70,7 +70,7 @@ let e_restart = {keyCode: 13};
 
 //make action que
 socket.on('action', function (action) {
-    console.log("addeds action: " + action.action + " on frame: " + action.frame_id);
+    console.log("action added: " + action.action + " on frame: " + action.frame_id);
     actions.push(action)
 });
 
