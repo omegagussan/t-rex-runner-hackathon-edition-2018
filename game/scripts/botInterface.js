@@ -32,8 +32,8 @@ function runBot(){
         });
 
         //execute actions
+        let tRex = Runner.instance_.tRex;
         if(actions.length > 0 && frame_id === actions[0].frame_id){
-            let tRex = Runner.instance_.tRex;
 
             //picks the first action on this frame. Thus first action posted is executed for a frame. Others are ignored.
             let this_action = actions[0].action;
@@ -63,9 +63,14 @@ function runBot(){
         let canvas = copyCanvasWithRescale(document.getElementById('canvasId'), downsamplingNumber).toDataURL();
         socket.emit('frame', {frame_id: frame_id, frame_data: canvas});
 
-
+        let state = 'RUNNING';
         //emit gamestate as custom format
-        socket.emit('state', {frame_id: frame_id, obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
+        if (tRex.jumping){
+            state = 'JUMPING';
+        } else if (tRex.ducking){
+            state = 'DUCKING';
+        }
+        socket.emit('state', {frame_id: frame_id, status: state, obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
 
         //increment frame count
         frame_id++;
