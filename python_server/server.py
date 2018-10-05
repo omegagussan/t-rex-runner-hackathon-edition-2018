@@ -13,23 +13,27 @@ async def index(request):
 
 @sio.on('connect')
 async def connect(sid, env):
-    print("connect ", sid)
+    print("connected ", sid)
     await sio.emit('start')
 
 @sio.on('frame')
 async def process_frame(sid, frameDict):
-    print("connect ", frameDict['frame_id'])
-    print("connect ", frameDict['canvas'])
+    print("frame ", frameDict['frame_id'])
+    print("data ", frameDict['frame_data'])
     current_frame = int(frameDict['frame_id'])
-    if current_frame % 100 == 0:
-        actionObj = {}
-        actionObj['action'] = 'jump'
-        actionObj['frame_id'] = current_frame + 100
-        await sio.emit('action', actionObj)
+    if current_frame % 200 == 0:
+        await sio.emit('duck', current_frame + 100)
+    elif  current_frame % 100 == 0:
+        await sio.emit('jump', current_frame + 100)
+
+@sio.on('state')
+async def process_state(sid, stateDict):
+    print('internal state:');
+    print(stateDict);
 
 @sio.on('disconnect')
 def disconnect(sid):
-    print('disconnect ', sid)
+    print('disconnected ', sid)
 
 app.router.add_static('/static', 'static')
 app.router.add_get('/', index)

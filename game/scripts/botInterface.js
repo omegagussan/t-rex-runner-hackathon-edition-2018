@@ -1,5 +1,8 @@
 //helper functions
-function copyCanvas(oldCanvas, downsample_factor) {
+function copyCanvasWithRescale(oldCanvas, downsample_factor) {
+    if (typeof downsample_factor !==  "number") {
+        throw "downsample_factor is not a integer";
+    }
     let inverse_downsample_factor = 1/downsample_factor;
 
     //create a new canvas
@@ -11,15 +14,19 @@ function copyCanvas(oldCanvas, downsample_factor) {
     newCanvas.height = oldCanvas.height/downsample_factor;
 
     //apply the old canvas to the new one
-
-    newContext.scale(inverse_downsample_factor,inverse_downsample_factor);
+    newContext.scale(inverse_downsample_factor, inverse_downsample_factor);
     newContext.drawImage(oldCanvas, 0, 0);
     return newCanvas;
 }
-//api outwards
+
+function createAction(name, frame){
+    return {action:name, frame_id: frame};
+}
+//api outwards towards game
 function runBot(){
+    //only run bot if you are playing.
     if (Runner.instance_.playing) {
-        //filter old events
+        //filter events in previous frames that are no longer valid.
         actions = actions.filter(function(action){
             return action.frame_id >= frame_id;
         });
@@ -28,64 +35,75 @@ function runBot(){
         if(actions.length > 0 && frame_id === actions[0].frame_id){
             let tRex = Runner.instance_.tRex;
 
-            //eligable for action
-            if (tRex.jumping || tRex.ducking){
-                console.log('not able to preform any action on frame: ' +  frame_id + ' because dino is jumping: ' + tRex.jumping + ' or ducking: ' +  tRex.ducking);
+            //picks the first action on this frame. Thus first action posted is executed for a frame. Others are ignored.
+            let this_action = actions[0].action;
+
+            if (tRex.jumping){
+                console.log('not able to jump on frame: ' +  frame_id + ' because dino is jumping');
                 return;
             }
 
-            let this_action = actions[0].action;
             if (this_action === 'jump') {
-                Runner.instance_.tRex.startJump(Runner.instance_.currentSpeed);
-
-                //tRex.startJump(Runner.instance_.currentSpeed);
+                if (tRex.ducking){
+                    tRex.setDuck(false);
+                }
+                tRex.startJump(Runner.instance_.currentSpeed);
             } else if (this_action === 'duck') {
-                Runner.instance_.tRex.setDuck(false);
-                tRex.setDuck(false);
+                if (tRex.ducking){
+                    tRex.setDuck(false);
+                }else{
+                    tRex.setDuck(true);
+                }
             } else {
                 console.log('ineligable command: ' + this_action + ' on frame: ' +  frame_id);
             }
         }
 
-        //emit
-        let canvas = copyCanvas(document.getElementById('canvasId'), downsamplingNumber).toDataURL();
-        socket.emit('frame', {frame_id: frame_id, canvas});
+        //emit frame as base64image
+        let canvas = copyCanvasWithRescale(document.getElementById('canvasId'), downsamplingNumber).toDataURL();
+        socket.emit('frame', {frame_id: frame_id, frame_data: canvas});
 
+
+        //emit gamestate as custom format
+        socket.emit('state', {frame_id: frame_id, obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
+
+        //increment frame count
         frame_id++;
     }
 }
 
 //instance variables
-let socket = io.connect('http://localhost:3000');
-let actions = [];
-let frame_id = 0;
+let socket = io.connect('http://localhost:3000'); //where your server is running
+let actions = []; //cue of actions to do.
+let frame_id = 0; //frame counter
 
 //config
-const downsamplingNumber = 4
+const downsamplingNumber = 4;
 
-let e_up = {keyCode:38};
-let e_down = {keyCode: 40};
-let e_restart = {keyCode: 13};
-
-
-//make action que
-socket.on('action', function (action) {
-    console.log("action added: " + action.action + " on frame: " + action.frame_id);
-    actions.push(action)
+//socket.io bindings
+socket.on('jump', function (frame_id) {
+    console.log("jump added on frame: " + frame_id);
+    actions.push(createAction('jump', frame_id))
 });
 
-//start/restart game
-socket.on('start', function (action) {
-    if (Runner.instance_.crashed){
-        Runner.instance_.restart();
-        console.log(Runner.instance_.playing);
-        Runner.instance_.tRex.startJump(Runner.instance_.currentSpeed);
-        Runner.instance_.update();
-    }else {
-        Runner.instance_.play();
-        Runner.instance_.tRex.startJump(Runner.instance_.currentSpeed);
+socket.on('duck', function (frame_id) {
+    console.log("duck added on frame: " + frame_id);
+    actions.push(createAction('duck', frame_id))
+});
+
+socket.on('start', function (placeholder) {
+    //placeholder is purposefully not used
+    function resetSettings() {
+        Runner.instance_.tRex.startJump(0);
         Runner.instance_.update();
     }
+    //if restart or start first time
+    if (Runner.instance_.crashed){
+        Runner.instance_.restart();
+    }else {
+        Runner.instance_.play();
+    }
+    resetSettings();
 });
 
 
