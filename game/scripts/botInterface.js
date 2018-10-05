@@ -65,7 +65,9 @@ function runBot(){
 
         let state = 'RUNNING';
         //emit gamestate as custom format
-        if (tRex.jumping){
+        if (Runner.instance_.crashed){
+            state = 'CRASHED';
+        } else if (tRex.jumping){
             state = 'JUMPING';
         } else if (tRex.ducking){
             state = 'DUCKING';
@@ -74,6 +76,8 @@ function runBot(){
 
         //increment frame count
         frame_id++;
+    } else if (Runner.instance_.crashed){
+        socket.emit('state', {frame_id: frame_id++, status: "CRASHED", obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
     }
 }
 

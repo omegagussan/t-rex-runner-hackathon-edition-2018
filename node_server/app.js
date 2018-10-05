@@ -26,10 +26,14 @@ io.on('connection', function (socket) {
         console.log('I got a frame, number: ' + frame_id + ' base64 to image it to look at it!');
     });
     socket.on('state', function({frame_id, status, obstacles, score, high_score}) {
-        console.log('your score is: ' +  score + ' highscore : ' + high_score);
-        if (((status !== 'JUMPING') && (obstacles.length > 0) && ((obstacles[0].xPos + obstacles[0].width) <= 160))){
-            socket.emit('jump', frame_id+1);
+        console.log(status);
+        if (status === 'CRASHED'){
+            console.log('GAME OVER!');
         }
+        console.log('your score is: ' +  score + ' highscore : ' + high_score);
+        if (((status !== 'JUMPING') && (obstacles.length > 0) && ((obstacles[0].xPos + obstacles[0].width) <= 160))){ //TODO: dont jump for high birds. Consider pace of dino to time jump!
+            socket.emit('jump', frame_id+1);
+        } //TODO: make logic for ducking.
     });
 });
 
