@@ -28,3 +28,6 @@ you will either need to pip install (or pip3 install depending on Python version
 aiohttp  
 socketio  
 then simply run: python server.py (this is intended for python3 but is easy to modify with print (no parenthesis in 2.7) statements to 2.7)
+
+'''source deactivate
+source activate''' to get in and out of anaconda3.
