@@ -11,11 +11,13 @@ let fs = require('fs');
 let Jimp = require('jimp');
 
 
-var width = 30;
-var height = 15;
+let width = 30;
+let height = 15;
 
 let currentFrameData = Array(30 * 15).fill(0);
 let currentFrameId = 0;
+let old_frame_id = 0;
+
 let weights = [];
 let replay = [];
 let trainer = null;
@@ -27,21 +29,22 @@ let optimizer = null;
 let gameOver = false;
 let didAction = false;
 
+
 var params = {
-  minibatchSize: 1,
-  replayMemorySize: 1,
+  minibatchSize: 16,
+  replayMemorySize: 200,
   stackFrames: 1,
-  targetUpdateFreq: 1,
-  discount: 0.90,
+  targetUpdateFreq: 60,
+  discount: 0.99,
   actionRepeat: 1,
   learningRate: 0.001,
   initExp: 1.0,
   finExp: 0.1,
-  finExpFrame: 1,
-  replayStartSize: 1,
-  hiddenLayers: [32, 32],
+  finExpFrame: 10000,
+  replayStartSize: 100,
+  hiddenLayers: [4, 4],
   activation: 'elu',
-  maxEpisodeFrames: 1
+  maxEpisodeFrames: 10
 };
 
 app.listen(3000);
@@ -68,6 +71,10 @@ io.on('connection', function (socket) {
     socket.emit('start');
 
     socket.on('frame', function ({frame_id, frame_data}) {
+      //2 FPS
+      if ((frame_id % 30) !== 0){
+        return;
+      }
       let image = fromBase64(frame_data);
 
       function doActions() {
@@ -80,7 +87,7 @@ io.on('connection', function (socket) {
             case 1:
               didAction = true;
               console.log("jumping at frame:" + currentFrameId);
-              socket.emit('jump', frame_id + 1);
+              socket.emit('jump', frame_id + 30);
               break;
           }
         }
@@ -109,18 +116,13 @@ io.on('connection', function (socket) {
     });
 
   socket.on('state', function({frame_id, status, obstacles, score, high_score}) {
-    if (status === 'CRASHED'){
+    if (status === 'CRASHED' && (frame_id !== old_frame_id)){
       gameOver = true;
       console.log('GAME OVER!');
-      setTimeout(function() {
-        if (gameOver){
-          socket.emit('start');
-          console.log("restarted");
-        } else {
-          gameOver = false;
-        }
-      }, 1000);
+      socket.emit('start');
+      gameOver = false;
     }
+    old_frame_id = frame_id;
   });
 
 });
@@ -131,7 +133,7 @@ function getState(){
   } else if (didAction) {
     return {frame: currentFrameData, gameOver: gameOver, rewardFrame: -1};
   } else {
-    return {frame: currentFrameData, gameOver: gameOver, rewardFrame: 1}
+    return {frame: currentFrameData, gameOver: gameOver, rewardFrame: 10}
   }
 }
 
@@ -293,7 +295,7 @@ function learn() {
   const batchNextS = tf.tensor2d(arrayNextS);
   const batchDone = tf.tensor1d(arrayDone);
 
-  const predMask = tf.oneHot(batchA, 3);
+  const predMask = tf.oneHot(batchA, 2);
 
   const targets = calcTarget(batchR, batchNextS, batchDone);
 
