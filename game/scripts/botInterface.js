@@ -1,3 +1,4 @@
+let is_emitted_gameover = false;
 //helper functions
 function copyCanvasWithRescale(oldCanvas, downsample_factor) {
   if (typeof downsample_factor !==  "number") {
@@ -44,6 +45,7 @@ function runBot(){
       }
 
       if (this_action === 'jump') {
+
         if (tRex.ducking){
           tRex.setDuck(false);
         }
@@ -77,7 +79,10 @@ function runBot(){
     //increment frame count
     frame_id++;
   } else if (Runner.instance_.crashed){
-    socket.emit('state', {frame_id: frame_id++, status: "CRASHED", obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
+      if (!is_emitted_gameover){
+        socket.emit('state', {frame_id: frame_id++, status: "CRASHED", obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
+        is_emitted_gameover = true;
+      }
   }
 }
 
@@ -101,6 +106,7 @@ socket.on('duck', function (frame_id) {
 });
 
 socket.on('start', function (placeholder) {
+  is_emitted_gameover = false;
   //placeholder is purposefully not used
   function resetSettings() {
     Runner.instance_.tRex.startJump(0);
