@@ -68,7 +68,17 @@ io.on('connection', function (socket) {
 
             }
         }
+        // Feedback
+        // status crashed ->    academy.addRewardToAgent(agent, -1.0)
+        // stuats still alive ->     academy.addRewardToAgent(agent, 1.0)
 
+        // sammanställ "input", dvs hur världen ser ut just nu
+        // scrapa obstacles till "input"
+        // await academy.step([               // Let the magic operate ...
+        //        {teacherName: teacher, inputs: inputs}
+        // ]);
+
+        // agent.getAction?
 
         if (status === 'CRASHED'){
             console.log('GAME OVER!');
