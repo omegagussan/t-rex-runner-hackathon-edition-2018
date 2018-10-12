@@ -31,7 +31,7 @@ function obstacleClose(obstacles) {
 }
 
 function obstacleExistsAndIsInWindow(obst) {
-    if (obst !== null)
+    if (obst !== undefined)
         return obstacleInWindow(obst);
     return false;
 }
@@ -69,7 +69,7 @@ io.on('connection', function (socket) {
 
 
         const action = brain.forward(state);
-        action === 1 ? console.log("1") : console.log("0");
+        action === 1 ? socket.emit('jump', frame_id+1) : console.log("0");
         brain.backward(obstacleExistsAndIsInWindow(obstacles[0]));
         state[obstacleExistsAndIsInWindow(obstacles[0])];
         // Feedback
@@ -91,7 +91,7 @@ io.on('connection', function (socket) {
         if ((((status !== 'JUMPING')
                 && obstacleClose(obstacles)) // "är nära"
          )){ //TODO: dont jump for high birds. Consider pace of dino to time jump!
-            socket.emit('jump', frame_id+1);
+            //socket.emit('jump', frame_id+1);
         } //TODO: make logic for ducking.
     });
 });
