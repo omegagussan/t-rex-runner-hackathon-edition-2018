@@ -85,7 +85,7 @@
      * Frames per second.
      * @const
      */
-    var FPS = 60;
+    var FPS = 15;
 
     /** @const */
     var IS_HIDPI = window.devicePixelRatio > 1;
