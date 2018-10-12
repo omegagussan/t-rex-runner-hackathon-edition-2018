@@ -22,7 +22,8 @@ function handler (req, res) {
 io.on('connection', function (socket) {
     socket.emit('start');
 
-    socket.on('frame', function ({frame_id, canvas}) {
+    socket.on('frame', function ({frame_id, frame_data}) {
+        console.log(frame_data)
         console.log('I got a frame, number: ' + frame_id + ' base64 to image it to look at it!');
     });
     socket.on('state', function({frame_id, status, obstacles, score, high_score}) {
