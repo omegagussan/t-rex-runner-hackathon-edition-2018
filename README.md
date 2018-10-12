@@ -19,14 +19,20 @@ there is a implementation of a server in python and javascript/NODE. As far as I
 also among other languages so feel free to write your own.
 
 ####nodeJS
+
 cd node_server
+
 npm install
+
 npm run start
 
 ####python
 you will either need to pip install (or pip3 install depending on Python version) or conda install:
+
 aiohttp  
+
 socketio  
+
 then simply run: python server.py (this is intended for python3 but is easy to modify with print (no parenthesis in 2.7) statements to 2.7)
 
 '''source deactivate
