@@ -3,6 +3,11 @@ console.log("starting...");
 var app = require('http').createServer(handler);
 var io = require('socket.io')(app);
 var fs = require('fs');
+var convnetjs = require("convnetjs-ts");
+
+const brainOpt = { start_learn_threshold: 100 };
+const brain = new convnetjs.deepqlearn.Brain(1, 2, brainOpt); // 3 inputs, 2 possible outputs (0,1)
+const state = [0];
 
 app.listen(3000);
 
@@ -23,6 +28,12 @@ function obstacleClose(obstacles) {
     return (obstacles.length > 0) // Finns ett hinder
         && ((obstacles[0].xPos + obstacles[0].width) // hindrets högerkatnt
             <= 160);
+}
+
+function obstacleExistsAndIsInWindow(obst) {
+    if (obst !== null)
+        return obstacleInWindow(obst);
+    return false;
 }
 
 function obstacleInWindow(obst) {
@@ -56,18 +67,11 @@ io.on('connection', function (socket) {
 
         console.log(status);
 
-        // check if anuything is in our "window", then X on console
-        if (obstacles.length > 0)  {
-            let obst = obstacles[0];
-            console.log(
-                obst.xPos + " " + obst.yPos);
-            console.log(obst.width + " " + obst.height);
-            // console.log(obst);
-            if(obstacleInWindow(obst)) {
-                console.log("X");
 
-            }
-        }
+        const action = brain.forward(state);
+        action === 1 ? console.log("1") : console.log("0");
+        brain.backward(obstacleExistsAndIsInWindow(obstacles[0]));
+        state[obstacleExistsAndIsInWindow(obstacles[0])];
         // Feedback
         // status crashed ->    academy.addRewardToAgent(agent, -1.0)
         // stuats still alive ->     academy.addRewardToAgent(agent, 1.0)
