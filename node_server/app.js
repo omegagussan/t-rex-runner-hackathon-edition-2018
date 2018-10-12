@@ -31,23 +31,25 @@ model.fit(xs, ys, {
 
 // setup
 
-var scaleFactor = 16;
+var scaleFactor = 32;
 var width = Math.floor(300 / scaleFactor);
 var height = Math.floor(75 / scaleFactor);
+console.log("Input dim: " + width + "x" + height);
 var speed = 1;
-var samplingSkip = 4;
+var samplingSkip = 30;
 var latestFrame = Array(width * height).fill(0);
 var latestSaved = 0;
 var currentScore = 0;
 var isGameOver = false;
+var restart = null;
 
 // dodge_tfjs
 
 var params = {
   minibatchSize: 16,
-  replayMemorySize: 10000,
+  replayMemorySize: 200,
   stackFrames: 1,
-  targetUpdateFreq: 100,
+  targetUpdateFreq: 60,
   discount: 0.99,
   actionRepeat: 1,
   learningRate: 0.001,
@@ -55,9 +57,9 @@ var params = {
   finExp: 0.1,
   finExpFrame: 10000,
   replayStartSize: 100,
-  hiddenLayers: [32, 32],
+  hiddenLayers: [4, 4],
   activation: 'elu',
-  maxEpisodeFrames: 2000
+  maxEpisodeFrames: 10
 };
 
 var trainer = null;
@@ -73,6 +75,8 @@ var targetModel = null;
 var modelVars = null;
 var replay = null;
 var optimizer = null;
+
+var busy = false;
 
 function initTrain() {
   modelVars = [];
@@ -193,6 +197,7 @@ function* trainGen(episodes = 10000000) {
       history.push(result.frame);
       const nextS = [latestFrame];
 
+      busy = false;
       yield {
         frame: totalFrames,
         episode: ep,
@@ -203,6 +208,7 @@ function* trainGen(episodes = 10000000) {
         normValues: normVals.dataSync(),
         action: act
       };
+      busy = true;
 
       vals.dispose();
       normVals.dispose();
@@ -223,6 +229,7 @@ function* trainGen(episodes = 10000000) {
           const lossc = loss.dataSync()[0];
           console.log("loss: " + lossc);
           //data2.addRows([[ep, lossc]]);
+          restart();
         }
         loss.dispose();
       }
@@ -311,19 +318,21 @@ function handler (req, res) {
 }
 
 function step(act) {
-  return { frame: latestFrame, gameOver: isGameOver, reward: currentScore,};
+  return { frame: latestFrame, gameOver: isGameOver, reward: isGameOver ? 0 : 1 };
 }
 
 io.on('connection', function (socket) {
     socket.emit('start');
 
     socket.on('frame', function ({frame_id, frame_data}) {
-        if ((frame_id % samplingSkip) != 0)
+        if ((frame_id % samplingSkip) != 0 || isGameOver || busy)
           return;
         var decoded = imageDataURI.decode(frame_data);
         //if (frame_id > latestSaved + samplingSkip)
         //  console.log((frame_id - latestSaved) + " behind");
         Jimp.read(decoded.dataBuffer).then(image => {
+          if (isGameOver || busy)
+            return;
           image.greyscale();
           image.contrast(1);
           image.resize(width, height);
@@ -332,6 +341,8 @@ io.on('connection', function (socket) {
             if (i % 4 == 0)
               input.push(image.bitmap.data[i]);
           }
+          if (isGameOver || busy)
+            return;
           latestFrame = input;
           latestSaved = frame_id;
           var value = trainer.next();
@@ -354,10 +365,11 @@ io.on('connection', function (socket) {
         currentScore = score;
         isGameOver = status === 'CRASHED';
         if (status === 'CRASHED'){
+            setTimeout(function(){ socket.emit('start'); }, 2000);
             console.log('GAME OVER!');
-            socket.emit('start');
         }
     });
+    restart = function() { socket.emit('start'); }
 });
 
 console.log("go on, I'm listening!");
