@@ -106,13 +106,15 @@ socket.on('start', function (placeholder) {
         Runner.instance_.tRex.startJump(0);
         Runner.instance_.update();
     }
-    //if restart or start first time
-    if (Runner.instance_.crashed){
+    if(!Runner.instance_.playing){
+      //if restart or start first time
+      if (Runner.instance_.crashed){
         Runner.instance_.restart();
-    }else {
+      }else {
         Runner.instance_.play();
+      }
+      resetSettings();
     }
-    resetSettings();
 });
 
 
