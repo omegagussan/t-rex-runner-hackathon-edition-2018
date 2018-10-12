@@ -3,7 +3,7 @@ console.log("starting...");
 var app = require('http').createServer(handler);
 var io = require('socket.io')(app);
 var fs = require('fs');
-let lwip = require('lwip');
+var Jimp = require('jimp');
 
 app.listen(3000);
 
@@ -37,8 +37,16 @@ io.on('connection', function (socket) {
 
     socket.on('frame', function ({frame_id, frame_data}) {
       let image = fromBase64(frame_data);
-      writeToFile(image);
-
+      //writeToFile(image);
+      Jimp.read(image)
+        .then(myImage => {
+          myImage.crop(25, 0, 150, 75);
+          myImage.resize(30,Jimp.AUTO);
+          myImage.write('this.png');
+        })
+        .catch(err => {
+          console.log(err)
+        });
 
 
     });
