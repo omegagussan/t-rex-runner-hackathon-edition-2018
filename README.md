@@ -3,7 +3,7 @@ The purpose of this project is to play t-rex-running with reinforcement learning
 
 What I've done before (2018):
 +  forked [the t-rex runner game extracted from chromium](https://github.com/wayou/t-rex-runner) into /game
-+  augmented the game with a websocker api. See [socket.io botInterface](#socket.io botInterface)
++  augmented the game with a websocker api. See [socket.io botInterface](#socket.io-botInterface)
 
 ## Architecture of the setup
 Is very counter-intuitive with the game in the browser being the client and
