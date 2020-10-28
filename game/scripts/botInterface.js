@@ -1,4 +1,7 @@
-let is_emitted_gameover = false;
+//config
+const downsamplingNumber = 1;
+const emit_every_nth_frame = 10;
+
 //helper functions
 function copyCanvasWithRescale(oldCanvas, downsample_factor) {
   if (typeof downsample_factor !==  "number") {
@@ -23,6 +26,7 @@ function copyCanvasWithRescale(oldCanvas, downsample_factor) {
 function createAction(name, frame){
   return {action:name, frame_id: frame};
 }
+
 //api outwards towards game
 function runBot(){
   //only run bot if you are playing.
@@ -40,12 +44,11 @@ function runBot(){
       let this_action = actions[0].action;
 
       if (tRex.jumping){
-        console.log('not able to jump on frame: ' +  frame_id + ' because dino is jumping');
+        console.warn('not able to jump on frame: ' +  frame_id + ' because dino is jumping');
         return;
       }
 
       if (this_action === 'jump') {
-
         if (tRex.ducking){
           tRex.setDuck(false);
         }
@@ -57,16 +60,18 @@ function runBot(){
           tRex.setDuck(true);
         }
       } else {
-        console.log('ineligable command: ' + this_action + ' on frame: ' +  frame_id);
+        console.warn('ineligible command: ' + this_action + ' on frame: ' +  frame_id);
       }
     }
 
     //emit frame as base64image
-    let canvas = copyCanvasWithRescale(document.getElementById('canvasId'), downsamplingNumber).toDataURL();
-    socket.emit('frame', {frame_id: frame_id, frame_data: canvas});
+    if (frame_id % emit_every_nth_frame === 0){
+      let canvas = copyCanvasWithRescale(document.getElementById('canvasId'), downsamplingNumber).toDataURL();
+      socket.emit('frame', {frame_id: frame_id, frame_data: canvas});
+    }
 
     let state = 'RUNNING';
-    //emit gamestate as custom format
+    //emit game state as custom format
     if (Runner.instance_.crashed){
       state = 'CRASHED';
     } else if (tRex.jumping){
@@ -81,27 +86,27 @@ function runBot(){
   } else if (Runner.instance_.crashed){
       if (!is_emitted_gameover){
         socket.emit('state', {frame_id: frame_id++, status: "CRASHED", obstacles: Runner.instance_.horizon.obstacles, score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.distanceRan)), high_score: Runner.instance_.distanceMeter.getActualDistance(Math.ceil(Runner.instance_.highestScore))});
+        actions = []
+        frame_id = 0
         is_emitted_gameover = true;
       }
   }
 }
 
 //instance variables
+let is_emitted_gameover = false;
 let socket = io.connect('http://localhost:3000'); //where your server is running
 let actions = []; //cue of actions to do.
 let frame_id = 0; //frame counter
 
-//config
-const downsamplingNumber = 4;
-
 //socket.io bindings
 socket.on('jump', function (frame_id) {
-  console.log("jump added on frame: " + frame_id);
+  console.info("jump added on frame: " + frame_id);
   actions.push(createAction('jump', frame_id))
 });
 
 socket.on('duck', function (frame_id) {
-  console.log("duck added on frame: " + frame_id);
+  console.info("duck added on frame: " + frame_id);
   actions.push(createAction('duck', frame_id))
 });
 

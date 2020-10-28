@@ -51,6 +51,3 @@ fabric.properties
 
 # *.iml
 # modules.xml
-
-#node_modules
-/node_server/node_modules/*
