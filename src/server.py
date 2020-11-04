@@ -15,7 +15,7 @@ d_width_downsample = 60
 d_width = 10
 actions = ['duck', 'jump', 'run']
 
-number_of_epochs = 10
+number_of_epochs = 100
 learning = Qlearning(d_width, actions, number_of_epochs)
 # start server
 sio = socketio.AsyncServer()
@@ -44,23 +44,30 @@ async def process_state(sid, state: Dict):
         from_indexes.append(from_index_)
     from_indexes = list(filter(lambda x: x > 0, from_indexes))
     from_index = min(from_indexes) if len(from_indexes) > 0 else None
+    print(from_index)
 
     if not args.demo:
-        learning.update(from_index, state["score"])
-
-    selected_action = learning.select_action(from_index)
-    if selected_action != "run":
-        await sio.emit(selected_action, current_frame + 1)
+        learning.update(from_index, state["score"], state["status"] == 'CRASHED')
 
     if state["status"] == 'CRASHED':
         print("you are dead!")
         print(f'score: {state["score"]}')
         await start_game()  # Will restart if you died
+        return
+
+    selected_action = learning.select_action(from_index)
+    if selected_action != "run":
+        await sio.emit(selected_action, current_frame + 1)
 
 
 async def start_game():
     global learning
     global number_of_epochs
+
+    if args.demo:
+        learning.load_Q("../data/q-2020-11-04 10:32:32.042804.npy")
+        print("has loaded")
+
     if not learning.is_done():
         await slow_countdown()
         print(" ")
@@ -68,6 +75,7 @@ async def start_game():
         print(f"New game started at {datetime.now()}")
         await sio.emit('start')
         learning.increment_played()
+        print(f"played {learning.num_played}")
     else:
         print(learning.get_score_over_time())
         print("Final Q-Table Values")

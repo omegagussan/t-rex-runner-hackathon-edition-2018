@@ -27,9 +27,10 @@ class Qlearning:
             self.action_penalty += 1
         return action_
 
-    def update(self, state, reward):
-        print("UPDATING WEIGHTS")
+    def update(self, state, reward, is_crashed=False):
         reward_with_penalty = reward - self.action_penalty
+        if is_crashed:
+            reward_with_penalty = reward_with_penalty - 50
         if state is None:
             return  # We dont have an obstacle
         if self.action is None:
