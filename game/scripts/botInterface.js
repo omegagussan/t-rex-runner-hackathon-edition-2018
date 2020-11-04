@@ -1,5 +1,5 @@
 //config
-const downsamplingNumber = 1;
+const downsamplingNumber = 4;
 const emit_every_nth_frame = 10;
 
 //helper functions

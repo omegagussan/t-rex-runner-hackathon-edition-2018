@@ -13,12 +13,14 @@ run:
 	docker run --rm -it \
 	-p 3000:3000 \
 	-v $(CURDIR)/src:/home/app/src:ro \
+	-v $(CURDIR)/data:/home/app/data \
 	$(DOCKER_IMAGE)
 
 .PHONY: shell
 shell:
 	docker run --rm -it \
 	-v $(CURDIR)/src:/home/app/src:ro \
+	-v $(CURDIR)/data:/home/app/data \
 	-p 3000:3000 \
 	$(DOCKER_IMAGE) \
 	/bin/bash
