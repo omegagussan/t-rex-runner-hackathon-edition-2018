@@ -8,6 +8,7 @@ class Qlearning:
     def __init__(self, observation_space, actions, episodes):
         self.actions = actions
         self.Q = np.zeros([observation_space, len(self.actions)])
+        self.Q[:, 1] = 1
         self.rewards = []
         self.num_played = 0
         self.num_episodes = episodes
@@ -15,7 +16,7 @@ class Qlearning:
         self.action = None
         self.action_penalty = 0
 
-    def select_action(self, state):
+    def select_action_training(self, state):
         if state is None:
             return "run"
         # Choose an action by greedily (with noise) picking from Q table
@@ -25,6 +26,14 @@ class Qlearning:
         action_ = self.actions[a]
         if action_ != "run":
             self.action_penalty += 1
+        return action_
+
+    def select_action_evaluation(self, state):
+        if state is None:
+            return "run"
+        # Choose an action by greedily (with noise) picking from Q table
+        a = np.argmax(self.Q[state, :])
+        action_ = self.actions[a]
         return action_
 
     def update(self, state, reward, is_crashed=False):

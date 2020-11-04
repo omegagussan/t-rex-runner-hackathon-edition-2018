@@ -1,21 +1,20 @@
+import time
 from datetime import datetime
 from typing import Dict
-import math
 import argparse
 
 from aiohttp import web
 import socketio
 import numpy as np
 
-from helpers import slow_countdown
 from q_learning import Qlearning
 
 # environment
-d_width_downsample = 60
-d_width = 10
-actions = ['duck', 'jump', 'run']
+delay = 1
+d_width = 600
+actions = ['jump', 'run']
 
-number_of_epochs = 100
+number_of_epochs = 10
 learning = Qlearning(d_width, actions, number_of_epochs)
 # start server
 sio = socketio.AsyncServer()
@@ -38,26 +37,31 @@ async def connect(sid, env):
 async def process_state(sid, state: Dict):
     current_frame = int(state['frame_id'])
 
-    from_indexes = []
-    for o in state["obstacles"]:
-        from_index_ = math.floor(o["xPos"] / d_width_downsample) - 1
-        from_indexes.append(from_index_)
-    from_indexes = list(filter(lambda x: x > 0, from_indexes))
-    from_index = min(from_indexes) if len(from_indexes) > 0 else None
-    print(from_index)
+    game_state = None
+    if len(state["obstacles"]) > 0:
+        # Obstacles are stored in order!
+        closes_obstacles = state["obstacles"][0]
+        game_state = closes_obstacles["xPos"] + closes_obstacles["width"]  # get rightmost point of obstacle
+        game_state = game_state if game_state < d_width else None
 
     if not args.demo:
-        learning.update(from_index, state["score"], state["status"] == 'CRASHED')
+        learning.update(game_state, state["score"], state["status"] == 'CRASHED')
 
     if state["status"] == 'CRASHED':
-        print("you are dead!")
         print(f'score: {state["score"]}')
+        time.sleep(1)
         await start_game()  # Will restart if you died
         return
 
-    selected_action = learning.select_action(from_index)
-    if selected_action != "run":
-        await sio.emit(selected_action, current_frame + 1)
+    if state["status"] == 'RUNNING':
+        if args.demo:
+            selected_action = learning.select_action_evaluation(game_state)
+        else:
+            selected_action = learning.select_action_training(game_state)
+
+        if selected_action != "run":
+            await sio.emit(selected_action, current_frame + delay)
+        # print(f"emitted {selected_action} at {current_frame + delay} from {current_frame}")
 
 
 async def start_game():
@@ -65,31 +69,33 @@ async def start_game():
     global number_of_epochs
 
     if args.demo:
-        learning.load_Q("../data/q-2020-11-04 10:32:32.042804.npy")
-        print("has loaded")
-
-    if not learning.is_done():
-        await slow_countdown()
-        print(" ")
-        print(" ")
-        print(f"New game started at {datetime.now()}")
-        await sio.emit('start')
-        learning.increment_played()
-        print(f"played {learning.num_played}")
+        print("Running in demo mode! No training is being done")
+        learning.load_Q("../data/manual_q.npy")
+        await _start_game()
     else:
-        print(learning.get_score_over_time())
-        print("Final Q-Table Values")
-        print(learning.get_Q())
-        ts = datetime.now()
-        with open(f"../data/q-{ts}.npy", "wb") as f:
-            np.save(f, learning.get_Q())
-        with open(f"../data/r-{ts}.npy", "wb") as f:
-            np.save(f, learning.get_rewards())
+        if not learning.is_done():
+            await _start_game()
+            print(f"played {learning.num_played}")
+            learning.increment_played()
+        else:
+            print(learning.get_score_over_time())
+            print("Final Q-Table Values")
+            print(learning.get_Q())
+            ts = datetime.now()
+            with open(f"../data/q-{ts}.npy", "wb") as f:
+                np.save(f, learning.get_Q())
+            with open(f"../data/r-{ts}.npy", "wb") as f:
+                np.save(f, learning.get_rewards())
 
-        learning = Qlearning(d_width, actions, number_of_epochs)
-        number_of_epochs = number_of_epochs * 10
-        print(learning.num_episodes)
-        await sio.emit('start')
+            learning = Qlearning(d_width, actions, number_of_epochs)
+            number_of_epochs = number_of_epochs * 10
+            await _start_game()
+
+
+async def _start_game():
+    print(" ")
+    print(f"New game started at {datetime.now()}")
+    await sio.emit('start')
 
 
 @sio.on('disconnect')
