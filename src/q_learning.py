@@ -28,6 +28,7 @@ class Qlearning:
         return action_
 
     def update(self, state, reward):
+        print("UPDATING WEIGHTS")
         reward_with_penalty = reward - self.action_penalty
         if state is None:
             return  # We dont have an obstacle
@@ -60,3 +61,6 @@ class Qlearning:
 
     def get_Q(self):
         return self.Q
+
+    def load_Q(self, path):
+        self.Q = np.load(path)

@@ -8,13 +8,22 @@ build:
 	-f Dockerfile \
 	.
 
-.PHONY: run
-run:
+.PHONY: train
+train:
 	docker run --rm -it \
 	-p 3000:3000 \
 	-v $(CURDIR)/src:/home/app/src:ro \
 	-v $(CURDIR)/data:/home/app/data \
 	$(DOCKER_IMAGE)
+
+.PHONY: demo
+demo:
+	docker run --rm -it \
+	-p 3000:3000 \
+	-v $(CURDIR)/src:/home/app/src:ro \
+	-v $(CURDIR)/data:/home/app/data \
+	$(DOCKER_IMAGE) \
+	python -m server --demo
 
 .PHONY: shell
 shell:

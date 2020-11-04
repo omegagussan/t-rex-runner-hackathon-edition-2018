@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Dict
 import math
+import argparse
 
 from aiohttp import web
 import socketio
@@ -16,7 +17,6 @@ actions = ['duck', 'jump', 'run']
 
 number_of_epochs = 10
 learning = Qlearning(d_width, actions, number_of_epochs)
-
 # start server
 sio = socketio.AsyncServer()
 app = web.Application()
@@ -44,7 +44,9 @@ async def process_state(sid, state: Dict):
         from_indexes.append(from_index_)
     from_indexes = list(filter(lambda x: x > 0, from_indexes))
     from_index = min(from_indexes) if len(from_indexes) > 0 else None
-    learning.update(from_index, state["score"])
+
+    if not args.demo:
+        learning.update(from_index, state["score"])
 
     selected_action = learning.select_action(from_index)
     if selected_action != "run":
@@ -90,4 +92,13 @@ def disconnect(sid):
 app.router.add_get('/', index)
 app.router.add_static('/', '../game/')
 if __name__ == '__main__':
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "--demo",
+        dest="demo",
+        action="store_true",
+        default=False,
+        help="If not to update weights and load best model",
+    )
+    args = argparser.parse_args()
     web.run_app(app, host='0.0.0.0', port=3000)
