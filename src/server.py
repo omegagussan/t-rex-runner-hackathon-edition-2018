@@ -12,10 +12,12 @@ from q_learning import Qlearning
 # environment
 delay = 1
 d_width = 600
-actions = ['jump', 'run']
+d_height = 2
+duck_delay = 50
+actions = ['jump', 'run', 'duck']
 
 number_of_epochs = 10
-learning = Qlearning(d_width, actions, number_of_epochs)
+learning = Qlearning(d_width, d_height, actions, number_of_epochs)
 # start server
 sio = socketio.AsyncServer()
 app = web.Application()
@@ -39,10 +41,7 @@ async def process_state(sid, state: Dict):
 
     game_state = None
     if len(state["obstacles"]) > 0:
-        # Obstacles are stored in order!
-        closes_obstacles = state["obstacles"][0]
-        game_state = closes_obstacles["xPos"] + closes_obstacles["width"]  # get rightmost point of obstacle
-        game_state = game_state if game_state < d_width else None
+        game_state = get_game_state(state)
 
     if not args.demo:
         learning.update(game_state, state["score"], state["status"] == 'CRASHED')
@@ -53,6 +52,9 @@ async def process_state(sid, state: Dict):
         await start_game()  # Will restart if you died
         return
 
+    if state["status"] == 'DUCKING':
+        await sio.emit("run", current_frame + delay + duck_delay)
+
     if state["status"] == 'RUNNING':
         if args.demo:
             selected_action = learning.select_action_evaluation(game_state)
@@ -61,7 +63,22 @@ async def process_state(sid, state: Dict):
 
         if selected_action != "run":
             await sio.emit(selected_action, current_frame + delay)
-        # print(f"emitted {selected_action} at {current_frame + delay} from {current_frame}")
+
+
+def get_game_state(state):
+    # Obstacles are stored in order!
+    closest_obstacles = state["obstacles"][0]
+    if closest_obstacles["typeConfig"]["type"] == "PTERODACTYL":
+        height = closest_obstacles["yPos"]
+        if height < 99:
+            return None, get_distance(closest_obstacles)
+    return get_distance(closest_obstacles), None
+
+
+def get_distance(closest_obstacles):
+    game_state = closest_obstacles["xPos"] + closest_obstacles["width"]  # get rightmost point of obstacle
+    game_state = game_state if game_state < d_width else None
+    return game_state
 
 
 async def start_game():
@@ -70,7 +87,7 @@ async def start_game():
 
     if args.demo:
         print("Running in demo mode! No training is being done")
-        learning.load_Q("../data/manual_q.npy")
+        learning.load_Q("../data/manual_q_3d.npy")
         await _start_game()
     else:
         if not learning.is_done():

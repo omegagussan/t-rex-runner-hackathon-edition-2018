@@ -54,12 +54,11 @@ function runBot(){
         }
         tRex.startJump(Runner.instance_.currentSpeed);
       } else if (this_action === 'duck') {
-        if (tRex.ducking){
-          tRex.setDuck(false);
-        }else{
           tRex.setDuck(true);
-        }
-      } else {
+      } else if (this_action === 'run') {
+        tRex.setDuck(false);
+    }
+      else {
         console.warn('ineligible command: ' + this_action + ' on frame: ' +  frame_id);
       }
     }
@@ -108,6 +107,11 @@ socket.on('jump', function (frame_id) {
 socket.on('duck', function (frame_id) {
   console.info("duck added on frame: " + frame_id);
   actions.push(createAction('duck', frame_id))
+});
+
+socket.on('run', function (frame_id) {
+  console.info("run added on frame: " + frame_id);
+  actions.push(createAction('run', frame_id))
 });
 
 socket.on('start', function (placeholder) {
